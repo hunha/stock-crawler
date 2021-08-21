@@ -1,20 +1,36 @@
-const { text } = require("express");
 const path = require("path");
 const Tesseract = require('tesseract.js');
 var fs = require('fs');
 
 const PAGE_TO_START = 6;
 
-const crawl = async () => {
+const crawlFromImages = async (source) => {
+    const stocks = fs.readdirSync(source).map(name => path.join(source, name));
+    for (var i = 0; i < stocks.length; i++) {
+        const stock = stocks[i];
+        console.log('--process on stock', stock);
+
+        const years = fs.readdirSync(stock).map(name => path.join(stock, name));
+        for (var j = 0; j < years.length; j++) {
+            console.log('--process on year', years[j]);
+
+            const yearResult = await crawlYearlySheet(years[j]);
+            console.log('--year result', stock, years[j], yearResult);
+        }
+    }
+
+    console.log('--Financial crawling END');
+}
+
+const crawlYearlySheet = async (imageSource) => {
     var fieldsToFind = Array.from(FIELDS);
     var lastResults = [];
 
-    const source = 'C:/Stocks/GDT/Fincancial/2020';
-    const files = fs.readdirSync(source).map(name => path.join(source, name));
+    const files = fs.readdirSync(imageSource).map(name => path.join(imageSource, name));
 
     var page = PAGE_TO_START;
     while (fieldsToFind.length > 0 && page < files.length) {
-        console.log('process on', files[page]);
+        console.log('--process on', files[page], fieldsToFind.map(f => f.code));
 
         const result = await Tesseract.recognize(
             files[page],
@@ -24,7 +40,6 @@ const crawl = async () => {
 
         const text = result.data.text;
         const results = findInText(text, fieldsToFind);
-        console.log('found', results);
 
         lastResults = lastResults.concat(results);
 
@@ -34,14 +49,20 @@ const crawl = async () => {
         page++;
     }
 
-    console.log('result', lastResults);
+    return lastResults;
 }
 
 const findInText = (text, fields) => {
     const results = [];
 
     for (var i = 0; i < fields.length; i++) {
-        var fieldFounds = text.match(fields[i].regex);
+        var fieldFounds;
+
+        for (var j = 0; j < fields[i].regexPatterns.length; j++) {
+            fieldFounds = text.match(fields[i].regexPatterns[j]);
+            if (!!fieldFounds) break;
+        }
+
         if (!!fieldFounds) {
             var amountFounds = fieldFounds[0].match(/(\d+\.)+\d+/g);
             if (!!amountFounds) {
@@ -56,33 +77,21 @@ const findInText = (text, fields) => {
     return results;
 }
 
-const testTesseract = async (path) => {
-    const result = await Tesseract.recognize(
-        path,
-        'vie',
-        { logger: m => console.log(m) }
-    );
-
-    const text = result.data.text;
-    console.log(text);
-}
-
 const FIELDS = [
     {
         code: 'currentAsset',
-        regex: /TÀI SẢN NGẮN HẠN .+/g, // Use a list of regex instead
+        regexPatterns: [/TÀI SẢN NGẮN HẠN .+/g] // Use a list of regex instead
     },
     {
         code: 'cashEquivalents',
-        regex: /Tiền và các khoản tương đương tiền .+/g,
+        regexPatterns: [/Tiền và các khoản tương đương tiền .+/g, /Tiền .+/g]
     },
     {
         code: 'totalLiabilities',
-        regex: /NỢPHẢI TRẢ .+/g, // NỢ PHẢI TRẢ
+        regexPatterns: [/NỢPHẢI TRẢ .+/g, /NỢ PHẢI TRẢ .+/g, /NỢ PHÁI TRẢ .+/g]
     }
 ];
 
 module.exports = {
-    crawl,
-    testTesseract
+    crawlFromImages
 }

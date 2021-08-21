@@ -14,15 +14,19 @@ app.get('/crawl-stocks', (request, response) => {
 })
 
 app.get('/crawl-financial', (request, response) => {
-    financialCrawler.crawl();
+    financialCrawler.crawlFromImages('C:/workspaces/Test');
 
     response.json({ info: 'crawling' })
 })
 
 app.get('/test-tesseract', (request, response) => {
-    financialCrawler.testTesseract('C:/Stocks/GDT/Fincancial/2020/2020-09.jpg');
+    const source = request.query.path;
+    const ocrUtils = require('./common/ocr-utils');
 
-    response.json({ info: 'crawling' })
+    ocrUtils.recognize(source, 'vie').then((text) => {
+        console.log(text);
+        response.send(text);
+    });
 })
 
 app.listen(port, () => { console.log("Server started at port 2400") });
