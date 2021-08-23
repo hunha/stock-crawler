@@ -1,28 +1,66 @@
 const path = require("path");
 const Tesseract = require('tesseract.js');
-var fs = require('fs');
+const fs = require('fs');
+const objectUtils = require('../common/object-utils');
+const stockUtils = require('../common/stock-utils');
+const financialStatementModel = require('../models/financial_statement');
+const stockModel = require('../models/stock');
 
 const PAGE_TO_START = 6;
+const DEFAULT_STATEMENT_TYPE = 'YEARLY';
 
 const crawlFromImages = async (source) => {
-    const stocks = fs.readdirSync(source).map(name => path.join(source, name));
+    const stocks = fs.readdirSync(source).map(name => { return { code: name, path: path.join(source, name) }; });
     for (var i = 0; i < stocks.length; i++) {
-        const stock = stocks[i];
-        console.log('--process on stock', stock);
+        console.log('--process on stock', stocks[i].code);
 
-        const years = fs.readdirSync(stock).map(name => path.join(stock, name));
-        for (var j = 0; j < years.length; j++) {
-            console.log('--process on year', years[j]);
+        const stock = await stockModel.getBySymbol(stocks[i].code);
+        if (!stock) {
+            continue;
+        }
 
-            const yearResult = await crawlYearlySheet(years[j]);
-            console.log('--year result', stock, years[j], yearResult);
+        const stockSheets = await readStockSheets(stocks[i].path);
+
+        for (var j = 0; j < stockSheets.length; j++) {
+            const sheet = stockSheets[j];
+
+            const statement = {
+                code: stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, sheet.year, sheet.year),
+                stock: stock.code,
+                statement_type: DEFAULT_STATEMENT_TYPE,
+                statement_year: sheet.year,
+                indicate: sheet.year
+            };
+
+            console.log('create statement', statement);
+
+            await financialStatementModel.create(statement);
         }
     }
 
     console.log('--Financial crawling END');
 }
 
-const crawlYearlySheet = async (imageSource) => {
+const readStockSheets = async (stockSource) => {
+    var result = [];
+
+    const years = fs.readdirSync(stockSource).map(name => { return { code: name, path: path.join(stockSource, name) }; });
+    for (var j = 0; j < years.length; j++) {
+        const year = years[j];
+
+        console.log('--process on year', year.code);
+        const yearResult = await readYearlySheet(year.path);
+
+        const data = objectUtils.entriesToObject(yearResult, 'code', 'amount');
+        data.year = year.code;
+
+        result.push(data);
+    }
+
+    return result;
+}
+
+const readYearlySheet = async (imageSource) => {
     var fieldsToFind = Array.from(FIELDS);
     var lastResults = [];
 

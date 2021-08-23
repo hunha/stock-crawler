@@ -1,11 +1,4 @@
-const Pool = require('pg').Pool
-const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'StockDatabase',
-    password: 'sa123456',
-    port: 5432,
-})
+const pool = require('./database');
 
 const createStock = (stock) => {
     return new Promise((resolve, reject) => {
@@ -49,8 +42,23 @@ const findByCodes = (codes) => {
     });
 }
 
+const getBySymbol = (symbol) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM stocks WHERE symbol = $1 LIMIT 1';
+
+        pool.query(queryString, [symbol], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows[0]);
+        });
+    });
+}
+
 module.exports = {
     createStock,
     updateStock,
-    findByCodes
+    findByCodes,
+    getBySymbol
 }
