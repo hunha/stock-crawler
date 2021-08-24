@@ -20,6 +20,22 @@ const create = (financialStatement) => {
     });
 }
 
+const getByCode = (code) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM financial_statement WHERE code = $1 LIMIT 1';
+
+        pool.query(queryString, [code], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows[0]);
+        });
+    });
+}
+
+
 module.exports = {
-    create
+    create,
+    getByCode
 }

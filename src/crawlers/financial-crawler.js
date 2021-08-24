@@ -5,6 +5,9 @@ const objectUtils = require('../common/object-utils');
 const stockUtils = require('../common/stock-utils');
 const financialStatementModel = require('../models/financial_statement');
 const stockModel = require('../models/stock');
+const balanceSheetModel = require('../models/balance_sheet');
+const cashFlowStatementModel = require('../models/cash_flow_statement')
+const incomeStatementModel = require('../models/income_statement');
 
 const PAGE_TO_START = 6;
 const DEFAULT_STATEMENT_TYPE = 'YEARLY';
@@ -23,18 +26,56 @@ const crawlFromImages = async (source) => {
 
         for (var j = 0; j < stockSheets.length; j++) {
             const sheet = stockSheets[j];
+            const code = stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, sheet.year, sheet.year);
 
-            const statement = {
-                code: stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, sheet.year, sheet.year),
-                stock: stock.code,
-                statement_type: DEFAULT_STATEMENT_TYPE,
-                statement_year: sheet.year,
-                indicate: sheet.year
-            };
+            const statement = await financialStatementModel.getByCode(code);
+            if (!statement) {
+                console.log('--create statement', code);
 
-            console.log('create statement', statement);
+                await financialStatementModel.create({
+                    code: code,
+                    stock: stock.code,
+                    statement_type: DEFAULT_STATEMENT_TYPE,
+                    statement_year: sheet.year,
+                    indicate: sheet.year
+                });
 
-            await financialStatementModel.create(statement);
+                await balanceSheetModel.create({
+                    code: code,
+                    currentAssets: sheet.currentAssets,
+                    cashEquivalents: sheet.cashEquivalents,
+                    shortTermInvestments: sheet.shortTermInvestments,
+                    currentReceivables: sheet.currentReceivables,
+                    inventories: sheet.inventories,
+                    otherCurrentAssets: sheet.otherCurrentAssets,
+                    longTermAssets: sheet.longTermAssets,
+                    longTermReceivables: sheet.longTermReceivables,
+                    tangibleAssets: sheet.tangibleAssets,
+                    intangibleAssets: sheet.intangibleAssets,
+                    goodwill: sheet.goodwill,
+                    totalAssets: sheet.totalAssets,
+                    currentLiabilities: sheet.currentLiabilities,
+                    longTermDebt: sheet.longTermDebt,
+                    totalLiabilities: sheet.totalLiabilities,
+                    noncontrollingInterests: sheet.noncontrollingInterests,
+                    stockTreasury: sheet.stockTreasury,
+                    preferredShares: sheet.preferredShares
+                });
+
+                await cashFlowStatementModel.create({
+                    code: code,
+                    cashFromOerations: sheet.cashFromOerations,
+                    cashFromInvesting: sheet.cashFromInvesting,
+                    cashFromFinancing: sheet.cashFromFinancing
+                });
+
+                await incomeStatementModel.create({
+                    code: code,
+                    totalRevenue: sheet.totalRevenue,
+                    incomeBeforeTax: sheet.incomeBeforeTax,
+                    netIncome: sheet.netIncome
+                });
+            }
         }
     }
 
@@ -106,7 +147,7 @@ const findInText = (text, fields) => {
             if (!!amountFounds) {
                 results.push({
                     code: fields[i].code,
-                    amount: amountFounds[0]
+                    amount: amountFounds[0].replaceAll(".", "")
                 });
             }
         }
@@ -117,7 +158,7 @@ const findInText = (text, fields) => {
 
 const FIELDS = [
     {
-        code: 'currentAsset',
+        code: 'currentAssets',
         regexPatterns: [/TÀI SẢN NGẮN HẠN .+/g] // Use a list of regex instead
     },
     {
