@@ -53,7 +53,21 @@ const create = (balanceSheet) => {
     });
 }
 
+const findByCodes = (codes) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM balance_sheet WHERE code = ANY ($1)';
+
+        pool.query(queryString, [codes], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows);
+        });
+    });
+}
 
 module.exports = {
-    create
+    create,
+    findByCodes
 }

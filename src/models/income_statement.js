@@ -19,6 +19,21 @@ const create = (incomeStatement) => {
     });
 }
 
+const findByCodes = (codes) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM income_statement WHERE code = ANY ($1)';
+
+        pool.query(queryString, [codes], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows);
+        });
+    });
+}
+
 module.exports = {
-    create
+    create,
+    findByCodes
 }

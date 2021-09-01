@@ -34,8 +34,22 @@ const getByCode = (code) => {
     });
 }
 
+const findByStock = (stockCode) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM financial_statement WHERE stock = $1';
+
+        pool.query(queryString, [stockCode], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows);
+        });
+    });
+}
 
 module.exports = {
     create,
-    getByCode
+    getByCode,
+    findByStock
 }

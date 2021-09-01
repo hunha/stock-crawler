@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require('path');
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
 const objectUtils = require('../common/object-utils');
@@ -9,7 +9,8 @@ const balanceSheetModel = require('../models/balance_sheet');
 const cashFlowStatementModel = require('../models/cash_flow_statement')
 const incomeStatementModel = require('../models/income_statement');
 
-const PAGE_TO_START = 6;
+const PAGE_TO_START = 4;
+const PAGE_TO_END = 14;
 const DEFAULT_STATEMENT_TYPE = 'YEARLY';
 
 const crawlFromImages = async (source) => {
@@ -22,83 +23,36 @@ const crawlFromImages = async (source) => {
             continue;
         }
 
-        const stockSheets = await readStockSheets(stocks[i].path);
-
-        for (var j = 0; j < stockSheets.length; j++) {
-            const sheet = stockSheets[j];
-            const code = stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, sheet.year, sheet.year);
-
-            const statement = await financialStatementModel.getByCode(code);
-            if (!statement) {
-                console.log('--create statement', code);
-
-                await financialStatementModel.create({
-                    code: code,
-                    stock: stock.code,
-                    statement_type: DEFAULT_STATEMENT_TYPE,
-                    statement_year: sheet.year,
-                    indicate: sheet.year
-                });
-
-                await balanceSheetModel.create({
-                    code: code,
-                    currentAssets: sheet.currentAssets,
-                    cashEquivalents: sheet.cashEquivalents,
-                    shortTermInvestments: sheet.shortTermInvestments,
-                    currentReceivables: sheet.currentReceivables,
-                    inventories: sheet.inventories,
-                    otherCurrentAssets: sheet.otherCurrentAssets,
-                    longTermAssets: sheet.longTermAssets,
-                    longTermReceivables: sheet.longTermReceivables,
-                    tangibleAssets: sheet.tangibleAssets,
-                    intangibleAssets: sheet.intangibleAssets,
-                    goodwill: sheet.goodwill,
-                    totalAssets: sheet.totalAssets,
-                    currentLiabilities: sheet.currentLiabilities,
-                    longTermDebt: sheet.longTermDebt,
-                    totalLiabilities: sheet.totalLiabilities,
-                    noncontrollingInterests: sheet.noncontrollingInterests,
-                    stockTreasury: sheet.stockTreasury,
-                    preferredShares: sheet.preferredShares
-                });
-
-                await cashFlowStatementModel.create({
-                    code: code,
-                    cashFromOerations: sheet.cashFromOerations,
-                    cashFromInvesting: sheet.cashFromInvesting,
-                    cashFromFinancing: sheet.cashFromFinancing
-                });
-
-                await incomeStatementModel.create({
-                    code: code,
-                    totalRevenue: sheet.totalRevenue,
-                    incomeBeforeTax: sheet.incomeBeforeTax,
-                    netIncome: sheet.netIncome
-                });
-            }
-        }
+        await crawlStockSheets(stock, stocks[i].path);
     }
 
     console.log('--Financial crawling END');
 }
 
-const readStockSheets = async (stockSource) => {
-    var result = [];
-
-    const years = fs.readdirSync(stockSource).map(name => { return { code: name, path: path.join(stockSource, name) }; });
+const crawlStockSheets = async (stock, imageSource) => {
+    const years = fs.readdirSync(imageSource).map(name => { return { code: name, path: path.join(imageSource, name) }; });
     for (var j = 0; j < years.length; j++) {
         const year = years[j];
 
-        console.log('--process on year', year.code);
-        const yearResult = await readYearlySheet(year.path);
+        const time = process.hrtime();
 
-        const data = objectUtils.entriesToObject(yearResult, 'code', 'amount');
-        data.year = year.code;
 
-        result.push(data);
+        const sheetCode = stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, year.code, year.code);
+
+        const statement = await financialStatementModel.getByCode(sheetCode);
+        if (!statement) {
+            const yearResult = await readYearlySheet(year.path);
+
+            const sheet = objectUtils.entriesToObject(yearResult, 'code', 'amount');
+            sheet.year = year.code;
+            sheet.code = sheetCode;
+
+            await createStockSheet(stock, sheet);
+        }
+
+        const diff = process.hrtime(time);
+        console.log(`--processed on year ${year.code} in ${diff[0]} seconds`);
     }
-
-    return result;
 }
 
 const readYearlySheet = async (imageSource) => {
@@ -108,13 +62,12 @@ const readYearlySheet = async (imageSource) => {
     const files = fs.readdirSync(imageSource).map(name => path.join(imageSource, name));
 
     var page = PAGE_TO_START;
-    while (fieldsToFind.length > 0 && page < files.length) {
-        console.log('--process on', files[page], fieldsToFind.map(f => f.code));
+    while (fieldsToFind.length > 0 && page < PAGE_TO_END) {
+        console.log('--process on', files[page]);
 
         const result = await Tesseract.recognize(
             files[page],
             'vie'
-            // { logger: m => console.log(m) }
         );
 
         const text = result.data.text;
@@ -143,11 +96,14 @@ const findInText = (text, fields) => {
         }
 
         if (!!fieldFounds) {
-            var amountFounds = fieldFounds[0].match(/(\d+\.)+\d+/g);
+            var amountFounds = fieldFounds[0].match(/\(?(\d+(\.|\,)){2,}\d+\)?/g);
             if (!!amountFounds) {
+                const isNegative = amountFounds[0].indexOf('(') > -1;
+                var amount = amountFounds[0].replaceAll('.', '').replaceAll(',', '').replace('(', '').replace(')', '');
+                amount = isNegative ? -amount : amount;
                 results.push({
                     code: fields[i].code,
-                    amount: amountFounds[0].replaceAll(".", "")
+                    amount: amount
                 });
             }
         }
@@ -156,21 +112,165 @@ const findInText = (text, fields) => {
     return results;
 }
 
+const createStockSheet = async (stock, sheet) => {
+    console.log('--create statement', sheet.code);
+
+    await financialStatementModel.create({
+        code: sheet.code,
+        stock: stock.code,
+        statement_type: DEFAULT_STATEMENT_TYPE,
+        statement_year: sheet.year,
+        indicate: sheet.year
+    });
+
+    await balanceSheetModel.create({
+        code: sheet.code,
+        currentAssets: sheet.currentAssets,
+        cashEquivalents: sheet.cashEquivalents,
+        shortTermInvestments: sheet.shortTermInvestments,
+        currentReceivables: sheet.currentReceivables,
+        inventories: sheet.inventories,
+        otherCurrentAssets: sheet.otherCurrentAssets,
+        longTermAssets: sheet.longTermAssets,
+        longTermReceivables: sheet.longTermReceivables,
+        tangibleAssets: sheet.tangibleAssets,
+        intangibleAssets: sheet.intangibleAssets,
+        goodwill: sheet.goodwill,
+        totalAssets: sheet.totalAssets,
+        currentLiabilities: sheet.currentLiabilities,
+        longTermDebt: sheet.longTermDebt,
+        totalLiabilities: sheet.totalLiabilities,
+        noncontrollingInterests: sheet.noncontrollingInterests,
+        stockTreasury: sheet.stockTreasury,
+        preferredShares: sheet.preferredShares
+    });
+
+    await cashFlowStatementModel.create({
+        code: sheet.code,
+        cashFromOperations: sheet.cashFromOperations,
+        cashFromInvesting: sheet.cashFromInvesting,
+        cashFromFinancing: sheet.cashFromFinancing
+    });
+
+    await incomeStatementModel.create({
+        code: sheet.code,
+        totalRevenue: sheet.totalRevenue,
+        incomeBeforeTax: sheet.incomeBeforeTax,
+        netIncome: sheet.netIncome
+    });
+}
+
 const FIELDS = [
     {
         code: 'currentAssets',
-        regexPatterns: [/TÀI SẢN NGẮN HẠN .+/g] // Use a list of regex instead
+        regexPatterns: [/TÀI(\s?)(SẢN|SẲN|SẢẲN|SÀN)(\s?)(NGẮN|NGÁN)(\s?)HẠN(\s?).+/g]
     },
     {
         code: 'cashEquivalents',
-        regexPatterns: [/Tiền và các khoản tương đương tiền .+/g, /Tiền .+/g]
+        regexPatterns: [
+            /(Tiền|Tiễn)(\s?)và(\s?)các(\s?\:?\n?.+)khoản(\s?\:?\n?.+)tương(\s?\:?\n?.+)(đương|đượơng)(\s?\:?\n?.+)(tiền|tiên)(\s?).+/g,
+            /(Tiền|Tiên)(\s?).+/g
+        ]
     },
     {
         code: 'totalLiabilities',
-        regexPatterns: [/NỢPHẢI TRẢ .+/g, /NỢ PHẢI TRẢ .+/g, /NỢ PHÁI TRẢ .+/g]
+        regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI)(\s?)(TRẢ|TRÀẢ)(\s?).+/g]
+    },
+    {
+        code: 'shortTermInvestments', // Các khoản đầu tư ngắn hạn
+        regexPatterns: [
+            /Đầu(\s?)tư(\s?)tài(\s?)(chính|chjnh)(\s?)(ngắn|ngẩn)(\s?)hạn(\s?).+/g,
+            /Các(\s?)(khoán|khoản)(\s?)đầu(\s?)tư(\s?)tài(\s?)chính(\s?)ngắn(\s?)hạn(\s?).+/g,
+            /Các(\s?)khoản(\s?)đầu(\s?)tư(\s?)ngắn(\s?)hạn(\s?).+/g
+        ]
+    },
+    {
+        code: 'currentReceivables',
+        regexPatterns: [/(Các|Cắc)(\s?)khoản(\s?)(phải|phảị)(\s?)thu(\s?)(ngắn|ngẫn|ngẳn)(\s?)hạn(\s?).+/g]
+    },
+    {
+        code: 'inventories',
+        regexPatterns: [/Hàng(\s?)tồn(\s?)kho(\s?).+/g]
+    },
+    {
+        code: 'otherCurrentAssets',
+        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)ngắn(\s?)hạn(\s?)(khác|khắc|khảcợ)(\s?).+/g]
+    },
+    {
+        code: 'longTermAssets',
+        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN)(\s?)DÀI(\s?)HẠN(\s?).+/g]
+    },
+    {
+        code: 'longTermReceivables',
+        regexPatterns: [/Các(\s?)khoản(\s?)phải(\s?)thu(\s?)dài(\s?)hạn(\s?).+/g, /Phải(\s?)thu(\s?)dài(\s?)hạn(\s?).+/g]
+    },
+    {
+        code: 'tangibleAssets',
+        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)(cố|cổ|có)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
+    },
+    {
+        code: 'intangibleAssets',
+        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)(cố|có)(\s?)định(\s?)(vô|võ|vở)(\s?)hình(\s?).+/g, /Tài(\s?)sản(\s?)(vô|võ)(\s?)hình(\s?).+/g]
+    },
+    {
+        code: 'goodwill',
+        regexPatterns: [/(unknown) .+/g]
+    },
+    {
+        code: 'totalAssets',
+        regexPatterns: [/(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG)(\s?)(CỘNG|CỌNG)(\s?)TÀI(\s?)(SẲN|SẢN|SÀN)(\s?).+/g]
+    },
+    {
+        code: 'currentLiabilities',
+        regexPatterns: [/(Nợ|Ng)(\s?)ngắn(\s?)hạn(\s?).+/g]
+    },
+    {
+        code: 'longTermDebt',
+        regexPatterns: [/(Nợ|Ng)(\s?)(dài|ưài|dãi)(\s?)hạn(\s?).+/g]
+    },
+    {
+        code: 'noncontrollingInterests',
+        regexPatterns: [/(unknown) .+/g]
+    },
+    {
+        code: 'stockTreasury',
+        regexPatterns: [/(Cổ|Cỗ)(\s?)(phiếu|phiều)(\s?)quỹ(\s?).+/g]
+    },
+    {
+        code: 'preferredShares',
+        regexPatterns: [/(unknown) .+/g]
+    },
+    {
+        code: 'cashFromOperations',
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)kinh(\s?)doanh(\s?).+/g]
+    },
+    {
+        code: 'cashFromInvesting',
+        regexPatterns: [/Lưu(\s?)chuyển(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)đầu(\s?)tư(\s?).+/g]
+    },
+    {
+        code: 'cashFromFinancing',
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyễn)(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)tài(\s?)chính(\s?).+/g]
+    },
+    {
+        code: 'totalRevenue',
+        regexPatterns: [
+            /Doanh(\s?)thu(\s?)(thuần|thuản)(\s?)về(\s?)bán(\s?)(hãng|hàng)(\s?)và(\s?)(cung|cụng)(\s?)(cắp|cấp)(\s?)dịch(\s?)vụ(\s?).+/g,
+            /Doanh(\s?)thu(\s?)(thuằn|thuần|thuản)(\s?).+/g
+        ]
+    },
+    {
+        code: 'incomeBeforeTax',
+        regexPatterns: [/Tổng(\s?)lợi(\s?)nhuận(\s?)kế(\s?)toán(\s?)trước(\s?)(thuế|thuê)(\s?).+/g, /Lợi(\s?)nhuận(\s?)trước(\s?)(thuế|thuê)(\s?).+/g]
+    },
+    {
+        code: 'netIncome', 
+        regexPatterns: [/Lợi(\s?)nhuận(\s?)sau(\s?)(thuế|thuê)(\s?)thu(\s?)nhập(\s?)doanh(\s?)nghiệp(\s?).+/g, /Lợi(\s?)nhuận(\s?)sau(\s?)thuế(\s?)(TNDN|\s?).+/g]
     }
 ];
 
 module.exports = {
-    crawlFromImages
+    crawlFromImages,
+    findInText,
+    FIELDS
 }

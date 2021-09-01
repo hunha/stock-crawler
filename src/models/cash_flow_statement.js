@@ -6,7 +6,7 @@ const create = (cashFlowStatement) => {
 
         pool.query(queryString, [
             cashFlowStatement.code,
-            cashFlowStatement.cashFromOerations,
+            cashFlowStatement.cashFromOperations,
             cashFlowStatement.cashFromInvesting,
             cashFlowStatement.cashFromFinancing
         ], (error, results) => {
@@ -19,6 +19,21 @@ const create = (cashFlowStatement) => {
     });
 }
 
+const findByCodes = (codes) => {
+    return new Promise((resolve, reject) => {
+        const queryString = 'SELECT * FROM cash_flow_statement WHERE code = ANY ($1)';
+
+        pool.query(queryString, [codes], (error, results) => {
+            if (error) {
+                reject(error);
+            }
+
+            resolve(results.rows);
+        });
+    });
+}
+
 module.exports = {
-    create
+    create,
+    findByCodes
 }
