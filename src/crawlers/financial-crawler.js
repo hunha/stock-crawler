@@ -88,6 +88,19 @@ const findInText = (text, fields) => {
     const results = [];
 
     for (var i = 0; i < fields.length; i++) {
+        if (!!fields[i].ignorePatterns) {
+            var shouldIgnoreField;
+
+            for (var j = 0; j < fields[i].ignorePatterns.length; j++) {
+                const shouldIgnore = fields[i].ignorePatterns[j].test(text);
+                if (shouldIgnore) {
+                    shouldIgnoreField = true;
+                }
+            }
+
+            if (shouldIgnoreField) continue;
+        }
+
         var fieldFounds;
 
         for (var j = 0; j < fields[i].regexPatterns.length; j++) {
@@ -168,7 +181,7 @@ const FIELDS = [
     {
         code: 'cashEquivalents',
         regexPatterns: [
-            /(Tiền|Tiễn)(\s?)và(\s?)các(\s?\:?\n?.+)khoản(\s?\:?\n?.+)tương(\s?\:?\n?.+)(đương|đượơng)(\s?\:?\n?.+)(tiền|tiên)(\s?).+/g,
+            /(Tiền|Tiễn)(\s?)và(\s?)các(\n?.*)(\n?.*)khoản(\n?.*)(\n?.*)tương(\n?.*)(\n?.*)(đương|đượơng)(\n?.*)(\n?.*)(tiền|tiên)(\s?).+/g,
             /(Tiền|Tiên)(\s?).+/g
         ]
     },
@@ -177,7 +190,7 @@ const FIELDS = [
         regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI)(\s?)(TRẢ|TRÀẢ)(\s?).+/g]
     },
     {
-        code: 'shortTermInvestments', // Các khoản đầu tư ngắn hạn
+        code: 'shortTermInvestments',
         regexPatterns: [
             /Đầu(\s?)tư(\s?)tài(\s?)(chính|chjnh)(\s?)(ngắn|ngẩn)(\s?)hạn(\s?).+/g,
             /Các(\s?)(khoán|khoản)(\s?)đầu(\s?)tư(\s?)tài(\s?)chính(\s?)ngắn(\s?)hạn(\s?).+/g,
@@ -210,7 +223,10 @@ const FIELDS = [
     },
     {
         code: 'intangibleAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)(cố|có)(\s?)định(\s?)(vô|võ|vở)(\s?)hình(\s?).+/g, /Tài(\s?)sản(\s?)(vô|võ)(\s?)hình(\s?).+/g]
+        regexPatterns: [
+            /(Tài|Tải)(\s?)sản(\s?)(cố|có)(\s?)định(\s?)(vô|võ|vở)(\s?)hình(\s?).+/g,
+            /Tài(\s?)sản(\s?)(vô|võ)(\s?)hình(\s?).+/g
+        ]
     },
     {
         code: 'goodwill',
@@ -242,30 +258,39 @@ const FIELDS = [
     },
     {
         code: 'cashFromOperations',
-        regexPatterns: [/Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)kinh(\s?)doanh(\s?).+/g]
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)(thuần|thuản)(\s?)từ(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)kinh(\s?)doanh(\s?).+/g]
     },
     {
         code: 'cashFromInvesting',
-        regexPatterns: [/Lưu(\s?)chuyển(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)đầu(\s?)tư(\s?).+/g]
+        regexPatterns: [
+            /Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)thuần(\n?.*)(\n?.*)(từ|tử)(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)đầu(\s?)tư(\s?).+/g
+        ]
     },
     {
         code: 'cashFromFinancing',
-        regexPatterns: [/Lưu(\s?)(chuyển|chuyễn)(\s?)tiền(\s?)thuần(\s?)từ(\s?)hoạt(\s?)động(\s?)tài(\s?)chính(\s?).+/g]
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyễn)(\s?)tiền(\s?)(thuần|thuản)(\n?.*)(\n?.*)từ(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)tài(\s?)chính(\s?).+/g]
     },
     {
         code: 'totalRevenue',
         regexPatterns: [
-            /Doanh(\s?)thu(\s?)(thuần|thuản)(\s?)về(\s?)bán(\s?)(hãng|hàng)(\s?)và(\s?)(cung|cụng)(\s?)(cắp|cấp)(\s?)dịch(\s?)vụ(\s?).+/g,
+            /Doanh(\s?)thu(\s?)(thuần|thuản)(\s?)(về|vẻ)(\s?)bán(\n?.*)(\n?.*)(hãng|hàng)(\n?.*)(\n?.*)và(\n?.*)(\n?.*)(cung|cụng|cang)(\n?.*)(\n?.*)(cắp|cấp|cậấp|sấp)(\n?.*)(\n?.*)(dịch|dịnh)(\s?)(vụ|vọ)(\s?).+/g,
             /Doanh(\s?)thu(\s?)(thuằn|thuần|thuản)(\s?).+/g
         ]
     },
     {
         code: 'incomeBeforeTax',
-        regexPatterns: [/Tổng(\s?)lợi(\s?)nhuận(\s?)kế(\s?)toán(\s?)trước(\s?)(thuế|thuê)(\s?).+/g, /Lợi(\s?)nhuận(\s?)trước(\s?)(thuế|thuê)(\s?).+/g]
+        regexPatterns: [
+            /Tổng(\s?)lợi(\s?)nhuận(\s?)kế(\s?)toán(\s?)trước(\s?)(thuế|thuê)(\s?).+/g,
+            /Lợi(\s?)nhuận(\s?)trước(\s?)(thuế|thuê)(\s?).+/g
+        ]
     },
     {
-        code: 'netIncome', 
-        regexPatterns: [/Lợi(\s?)nhuận(\s?)sau(\s?)(thuế|thuê)(\s?)thu(\s?)nhập(\s?)doanh(\s?)nghiệp(\s?).+/g, /Lợi(\s?)nhuận(\s?)sau(\s?)thuế(\s?)(TNDN|\s?).+/g]
+        code: 'netIncome',
+        regexPatterns: [
+            /Lợi(\s?)nhuận(\s?)sau(\n?.*)(\n?.*)(thuế|thuê)(\n?.*)(\n?.*)thu(\n?.*)(\n?.*)nhập(\n?.*)(\n?.*)doanh(\n?.*)(\n?.*)nghiệp(\s?).+/g,
+            /Lợi(\s?)nhuận(\s?)sau(\n?.*)(\n?.*)thuế(\n?.*)(\n?.*)(TNDN|\s?).+/g
+        ],
+        ignorePatterns: [/Lợi(\s?)nhuận(\s?)sau(\n?.*)(\n?.*)thuế(\n?.*)(\n?.*)chưa(\n?.*)(\n?.*)phân(\s?)phối.+/g]
     }
 ];
 
