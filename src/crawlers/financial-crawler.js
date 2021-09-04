@@ -36,8 +36,7 @@ const crawlStockSheets = async (stock, imageSource) => {
 
         const time = process.hrtime();
 
-
-        const sheetCode = stockUtils.composeFinancialStatementCode(DEFAULT_STATEMENT_TYPE, year.code, year.code);
+        const sheetCode = stockUtils.composeFinancialStatementCode(stock.code, DEFAULT_STATEMENT_TYPE, year.code, year.code);
 
         const statement = await financialStatementModel.getByCode(sheetCode);
         if (!statement) {
@@ -258,17 +257,17 @@ const FIELDS = [
     },
     {
         code: 'cashFromOperations',
-        regexPatterns: [/Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)(thuần|thuản)(\s?)từ(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)kinh(\s?)doanh(\s?).+/g]
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn)(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)(kinh|kiính)(\s?)doanh(\s?).+/g]
     },
     {
         code: 'cashFromInvesting',
         regexPatterns: [
-            /Lưu(\s?)(chuyển|chuyên)(\s?)tiền(\s?)thuần(\n?.*)(\n?.*)(từ|tử)(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)đầu(\s?)tư(\s?).+/g
+            /Lưu(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn)(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)đầu(\s?)tư(\s?).+/g
         ]
     },
     {
         code: 'cashFromFinancing',
-        regexPatterns: [/Lưu(\s?)(chuyển|chuyễn)(\s?)tiền(\s?)(thuần|thuản)(\n?.*)(\n?.*)từ(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)tài(\s?)chính(\s?).+/g]
+        regexPatterns: [/Lưu(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn)(\n?.*)(\n?.*)hoạt(\n?.*)(\n?.*)động(\n?.*)(\n?.*)tài(\s?)chính(\s?).+/g]
     },
     {
         code: 'totalRevenue',

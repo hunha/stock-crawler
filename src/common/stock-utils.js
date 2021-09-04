@@ -3,8 +3,8 @@ const composeStockCode = (exchange, symbol) => {
     return exchange + ':' + symbol;
 }
 
-const composeFinancialStatementCode = (type, year, indicate) => {
-    return type + ':' + year + ':' + indicate;
+const composeFinancialStatementCode = (stockCode, type, year, indicate) => {
+    return stockCode + ':' + type + ':' + year + ':' + indicate;
 }
 
 module.exports = {
