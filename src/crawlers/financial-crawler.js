@@ -9,8 +9,8 @@ const balanceSheetModel = require('../models/balance_sheet');
 const cashFlowStatementModel = require('../models/cash_flow_statement')
 const incomeStatementModel = require('../models/income_statement');
 
-const PAGE_TO_START = 4;
-const PAGE_TO_END = 14;
+const PAGE_TO_START = 5;
+const PAGE_TO_END = 16;
 const DEFAULT_STATEMENT_TYPE = 'YEARLY';
 
 const crawlFromImages = async (source) => {
@@ -60,8 +60,10 @@ const readYearlySheet = async (imageSource) => {
 
     const files = fs.readdirSync(imageSource).map(name => path.join(imageSource, name));
 
-    var page = PAGE_TO_START;
-    while (fieldsToFind.length > 0 && page < PAGE_TO_END) {
+    const pageToEnd = PAGE_TO_END - 1;
+    var page = PAGE_TO_START - 1;
+
+    while (fieldsToFind.length > 0 && page < pageToEnd) {
         console.log('--process on', files[page]);
 
         const result = await Tesseract.recognize(
@@ -175,42 +177,42 @@ const createStockSheet = async (stock, sheet) => {
 const FIELDS = [
     {
         code: 'currentAssets',
-        regexPatterns: [/TÀI(\s?)(SẢN|SẲN|SẢẲN|SÀN)(\s?)(NGẮN|NGÁN)(\s?)HẠN(\s?).+/g]
+        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN)(\s?)(NGẮN|NGÁN)(\s?)HẠN(\s?).+/g]
     },
     {
         code: 'cashEquivalents',
         regexPatterns: [
-            /(Tiền|Tiễn)(\s?)và(\s?)các(\n?.*)(\n?.*)khoản(\n?.*)(\n?.*)tương(\n?.*)(\n?.*)(đương|đượơng)(\n?.*)(\n?.*)(tiền|tiên)(\s?).+/g,
-            /(Tiền|Tiên)(\s?).+/g
+            /(Tiền|Tiễn|Tiển)(\s?)và(\s?)các(\n?.*)(\n?.*)(khoản|khoăn)(\n?.*)(\n?.*)tương(\n?.*)(\n?.*)(đương|đượơng|đượng)(\n?.*)(\n?.*)(tiền|tiên)(\s?).+/g,
+            /(Tiền|Tiên|Tiển)(\s?).+/g
         ]
     },
     {
         code: 'totalLiabilities',
-        regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI)(\s?)(TRẢ|TRÀẢ)(\s?).+/g]
+        regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI)(\s?)(TRẢ|TRÀẢ|TRA)(\s?).+/g]
     },
     {
         code: 'shortTermInvestments',
         regexPatterns: [
-            /Đầu(\s?)tư(\s?)tài(\s?)(chính|chjnh)(\s?)(ngắn|ngẩn)(\s?)hạn(\s?).+/g,
-            /Các(\s?)(khoán|khoản)(\s?)đầu(\s?)tư(\s?)tài(\s?)chính(\s?)ngắn(\s?)hạn(\s?).+/g,
-            /Các(\s?)khoản(\s?)đầu(\s?)tư(\s?)ngắn(\s?)hạn(\s?).+/g
+            /(Đầu|Dầu)(\s?)tư(\s?)(tài|lài)(\s?)(chính|chjnh)(\s?)(ngắn|ngẩn|ngẫn)(\s?)hạn(\s?).+/g,
+            /Các(\s?)(khoán|khoản)(\s?)đầu(\s?)tư(\s?)(tài|lài)(\s?)(chính|chjnh)(\s?)(ngắn|ngẩn|ngẫn)(\s?)hạn(\s?).+/g,
+            /Các(\s?)(khoán|khoản)(\s?)đầu(\s?)tư(\s?)(ngắn|ngẩn|ngẫn)(\s?)hạn(\s?).+/g
         ]
     },
     {
         code: 'currentReceivables',
-        regexPatterns: [/(Các|Cắc)(\s?)khoản(\s?)(phải|phảị)(\s?)thu(\s?)(ngắn|ngẫn|ngẳn)(\s?)hạn(\s?).+/g]
+        regexPatterns: [/(Các|Cắc)(\s?)khoản(\s?)(phải|phảị|phái)(\s?)thu(\s?)(ngắn|ngẫn|ngẳn)(\s?)hạn(\s?).+/g]
     },
     {
         code: 'inventories',
-        regexPatterns: [/Hàng(\s?)tồn(\s?)kho(\s?).+/g]
+        regexPatterns: [/(Hàng|Hãng)(\s?)(tồn|tnn|tổn)(\s?)kho(\s?).+/g]
     },
     {
         code: 'otherCurrentAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)ngắn(\s?)hạn(\s?)(khác|khắc|khảcợ)(\s?).+/g]
+        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)ngắn(\s?)hạn(\s?)(khác|khắc|khảcợ)(\s?).+/g]
     },
     {
         code: 'longTermAssets',
-        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN)(\s?)DÀI(\s?)HẠN(\s?).+/g]
+        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN)(\s?)(DÀI|DẢI)(\s?)HẠN(\s?).+/g]
     },
     {
         code: 'longTermReceivables',
@@ -218,13 +220,13 @@ const FIELDS = [
     },
     {
         code: 'tangibleAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)sản(\s?)(cố|cổ|có)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
+        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)(cố|cổ|có|cỗ)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
     },
     {
         code: 'intangibleAssets',
         regexPatterns: [
-            /(Tài|Tải)(\s?)sản(\s?)(cố|có)(\s?)định(\s?)(vô|võ|vở)(\s?)hình(\s?).+/g,
-            /Tài(\s?)sản(\s?)(vô|võ)(\s?)hình(\s?).+/g
+            /(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)(cố|cổ|có|cỗ)(\s?)định(\s?)(vô|võ|vở|về)(\s?)hình(\s?).+/g,
+            /Tài(\s?)(sản|sẵn|sin)(\s?)(vô|võ)(\s?)hình(\s?).+/g
         ]
     },
     {
@@ -233,15 +235,15 @@ const FIELDS = [
     },
     {
         code: 'totalAssets',
-        regexPatterns: [/(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG)(\s?)(CỘNG|CỌNG)(\s?)TÀI(\s?)(SẲN|SẢN|SÀN)(\s?).+/g]
+        regexPatterns: [/(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG)(\s?)(CỘNG|CỌNG)(\s?)TÀI(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN)(\s?).+/g]
     },
     {
         code: 'currentLiabilities',
-        regexPatterns: [/(Nợ|Ng)(\s?)ngắn(\s?)hạn(\s?).+/g]
+        regexPatterns: [/(Nợ|Ng|Ngợ)(\s?)(ngắn|ngẳn|ngẩÝn)(\s?)hạn(\s?).+/g]
     },
     {
         code: 'longTermDebt',
-        regexPatterns: [/(Nợ|Ng)(\s?)(dài|ưài|dãi)(\s?)hạn(\s?).+/g]
+        regexPatterns: [/(Nợ|Ng|Ngợ)(\s?)(dài|ưài|dãi|uài)(\s?)hạn(\s?).+/g]
     },
     {
         code: 'noncontrollingInterests',

@@ -10,17 +10,32 @@ const exportFinancialStatement = async (stockCode) => {
 
     if (!stock) return;
 
-    const statements = financialStatementModel.findByStock(stock.code);
+    const statements = await financialStatementModel.findByStock(stock.code);
 
-    var composedData = {};
+    if (!statements) return;
 
     const statementCodes = statements.map(s => s.code);
 
-    const balanceSheets = await balanceSheetModel.findByCodes(statementCodes);
-    for (var i = 0; i < balanceSheets.length; i++) {
-        const balanceSheet = balanceSheets[i];
+    var composedData = {};
 
-        for (const [key, value] of Object.entries(balanceSheet)) {
+    const balanceSheets = await balanceSheetModel.findByCodes(statementCodes);
+    composedData = collectData(balanceSheets, composedData);
+
+    const cashFlowStatements = await cashFlowStatementModel.findByCodes(statementCodes);
+    composedData = collectData(cashFlowStatements, composedData);
+
+    const incomeStatements = await incomeStatementModel.findByCodes(statementCodes);
+    composedData = collectData(incomeStatements, composedData);
+
+    const exportData = Object.values(composedData);
+    return await converter.json2csvAsync(exportData);
+}
+
+const collectData = (sheets, composedData) => {
+    for (var i = 0; i < sheets.length; i++) {
+        const sheet = sheets[i];
+
+        for (const [key, value] of Object.entries(sheet)) {
             var row = composedData[key];
 
             if (!row) {
@@ -28,14 +43,11 @@ const exportFinancialStatement = async (stockCode) => {
                 composedData[key] = row;
             }
 
-            row[balanceSheet.code] = value;
+            row[sheet.code] = value;
         }
     }
 
-    const exportData = Object.values(composedData);
-    console.log(exportData);
-
-    return await converter.json2csvAsync(exportData);
+    return composedData;
 }
 
 module.exports = {
