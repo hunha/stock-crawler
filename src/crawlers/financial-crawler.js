@@ -1,8 +1,10 @@
 const path = require('path');
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
+const pdf2pic = require('pdf2pic');
 const objectUtils = require('../common/object-utils');
 const stockUtils = require('../common/stock-utils');
+const pathUtils = require('../common/path-util');
 const financialStatementModel = require('../models/financial_statement');
 const stockModel = require('../models/stock');
 const balanceSheetModel = require('../models/balance_sheet');
@@ -29,8 +31,11 @@ const crawlFromImages = async (source) => {
     console.log('--Financial crawling END');
 }
 
-const crawlStockSheets = async (stock, imageSource) => {
-    const years = fs.readdirSync(imageSource).map(name => { return { code: name, path: path.join(imageSource, name) }; });
+const crawlStockSheets = async (stock, stockFolder) => {
+    await prepareImageData(stockFolder);
+
+    const years = fs.readdirSync(stockFolder).map(name => { return { code: name, path: path.join(stockFolder, name) }; }).filter(y => !pathUtils.isFile(y.code));
+
     for (var j = 0; j < years.length; j++) {
         const year = years[j];
 
@@ -51,6 +56,46 @@ const crawlStockSheets = async (stock, imageSource) => {
 
         const diff = process.hrtime(time);
         console.log(`--processed on year ${year.code} in ${diff[0]} seconds`);
+    }
+}
+
+const prepareImageData = async (stockFolder) => {
+    const years = fs.readdirSync(stockFolder).map(name => { return { code: name, path: path.join(stockFolder, name) }; });
+
+    var missingYears = getMissingImagesYear(years);
+
+    for (var i = 0; i < missingYears.length; i++) {
+        const year = pathUtils.getName(missingYears[i].code);
+        const yearFolder = path.join(stockFolder, year);
+
+        await prepareYearImages(missingYears[i].path, year, yearFolder);
+    }
+}
+
+const getMissingImagesYear = (years) => {
+    var folders = years.filter(y => !pathUtils.isFile(y.code)).map(y => y.code);
+    return years.filter(y => pathUtils.isFile(y.code)).filter(y => !folders.includes(pathUtils.getName(y.code)));
+}
+
+const prepareYearImages = async (filePath, year, saveFolder) => {
+    fs.mkdirSync(saveFolder);
+
+    await convertPdfToImage(filePath, year, saveFolder, PAGE_TO_START, PAGE_TO_END);
+}
+
+const convertPdfToImage = async (filePath, fileName, savePath, startPage, endPage) => {
+    const storeAsImage = pdf2pic.fromPath(filePath, {
+        density: 200,
+        quality: 200,
+        saveFilename: fileName,
+        savePath: savePath,
+        format: "jpg",
+        width: 1654,
+        height: 2339
+    });
+
+    for (var page = startPage; page < endPage; page++) {
+        await storeAsImage(page);
     }
 }
 
