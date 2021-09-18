@@ -1,16 +1,19 @@
-const Tesseract = require('tesseract.js');
+const tesseract = require("node-tesseract-ocr")
 
 const recognize = async (path, language) => {
     try {
-        const result = await Tesseract.recognize(
+        const result = await tesseract.recognize(
             path,
-            'vie',
-            { logger: m => console.log(m) }
+            {
+                lang: language,
+                oem: 1,
+                psm: 3,
+            }
         );
 
-        return result.data.text;
+        return result;
     } catch (error) {
-        console.log(error);
+        console.log(error.message);
     }
 }
 

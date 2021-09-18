@@ -21,8 +21,8 @@
     "express": "^4.17.1",
     "jsdom": "^17.0.0",
     "json-2-csv": "^3.14.4",
+    "node-tesseract-ocr": "^2.2.1",
     "pdf2pic": "^2.1.4",
-    "pg": "^8.7.1",
-    "tesseract.js": "^2.1.5"
+    "pg": "^8.7.1"
   }
 }

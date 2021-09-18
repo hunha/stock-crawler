@@ -1,5 +1,5 @@
 const path = require('path');
-const Tesseract = require('tesseract.js');
+const tesseract = require("node-tesseract-ocr")
 const fs = require('fs');
 const pdf2pic = require('pdf2pic');
 const objectUtils = require('../common/object-utils');
@@ -105,26 +105,25 @@ const readYearlySheet = async (imageSource) => {
 
     const files = fs.readdirSync(imageSource).map(name => path.join(imageSource, name));
 
-    const pageToEnd = PAGE_TO_END - 1;
-    var page = PAGE_TO_START - 1;
+    for (var i = 0; i < files.length; i++)
+    {
+        console.log('--process on', files[i]);
 
-    while (fieldsToFind.length > 0 && page < pageToEnd) {
-        console.log('--process on', files[page]);
-
-        const result = await Tesseract.recognize(
-            files[page],
-            'vie'
+        const text = await tesseract.recognize(
+            files[i],
+            {
+                lang: 'vie',
+                oem: 1,
+                psm: 3,
+            }
         );
 
-        const text = result.data.text;
         const results = findInText(text, fieldsToFind);
 
         lastResults = lastResults.concat(results);
 
         const foundFieldCodes = results.map(r => r.code);
         fieldsToFind = fieldsToFind.filter(f => !foundFieldCodes.includes(f.code));
-
-        page++;
     }
 
     return lastResults;
@@ -295,15 +294,11 @@ const FIELDS = [
     },
     {
         code: 'noncontrollingInterests',
-        regexPatterns: [/(unknown) .+/g]
+        regexPatterns: [/LỢI(\s?)ÍCH(\s?)CỦA(\s?)(CỎ|CỔ)(\s?)ĐÔNG(\s?)THIẾU(\s?)(SÓ|SỐ)(\s?).+/g]
     },
     {
         code: 'stockTreasury',
         regexPatterns: [/(Cổ|Cỗ)(\s?)(phiếu|phiều)(\s?)quỹ(\s?).+/g]
-    },
-    {
-        code: 'preferredShares',
-        regexPatterns: [/(unknown) .+/g]
     },
     {
         code: 'cashFromOperations',
