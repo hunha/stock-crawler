@@ -24,7 +24,7 @@ app.get('/test-tesseract', (request, response) => {
     const source = request.query.path;
     const ocrUtils = require('./common/ocr-utils');
 
-    ocrUtils.recognize2(source, 'vie').then((text) => {
+    ocrUtils.recognize(source, 'vie').then((text) => {
         console.log(text);
         response.send(text);
     });

@@ -7,7 +7,7 @@ const recognize = async (path, language) => {
             {
                 lang: language,
                 oem: 1,
-                psm: 3,
+                psm: 4,
             }
         );
 
