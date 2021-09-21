@@ -5,6 +5,7 @@ const pdf2pic = require('pdf2pic');
 const objectUtils = require('../common/object-utils');
 const stockUtils = require('../common/stock-utils');
 const pathUtils = require('../common/path-util');
+const ocrUtils = require('../common/ocr-utils');
 const financialStatementModel = require('../models/financial_statement');
 const stockModel = require('../models/stock');
 const balanceSheetModel = require('../models/balance_sheet');
@@ -112,11 +113,7 @@ const readYearlySheet = async (imageSource) => {
     for (var i = 0; i < files.length; i++) {
         console.log('--process on', files[i]);
 
-        const text = await tesseract.recognize(files[i], {
-            lang: 'vie',
-            oem: 1,
-            psm: 4,
-        });
+        const text = await ocrUtils.recognize(files[i], 'vie');
 
         const results = findInText(text, fieldsToFind);
 
@@ -154,20 +151,31 @@ const findInText = (text, fields) => {
         }
 
         if (!!fieldFounds) {
-            var amountFounds = fieldFounds[0].match(/\(?(\d+(\.|\,)){2,}\d+\)?/g);
-            if (!!amountFounds) {
-                const isNegative = amountFounds[0].indexOf('(') > -1;
-                var amount = amountFounds[0].replaceAll('.', '').replaceAll(',', '').replace('(', '').replace(')', '');
-                amount = isNegative ? -amount : amount;
-                results.push({
-                    code: fields[i].code,
-                    amount: amount
-                });
-            }
+            results.push({
+                code: fields[i].code,
+                amount: extractAmount(fieldFounds[0])
+            });
         }
     }
 
     return results;
+}
+
+const extractAmount = (text) => {
+    var amountFounds = text.match(/\(?(\d+(\.|\,)){2,}\d+\)?/g);
+    if (!!amountFounds) {
+        const isNegative = amountFounds[0].indexOf('(') > -1;
+        var amount = amountFounds[0];
+
+        if (amountFounds[0].indexOf(",") > 0) {
+            amount = amountFounds[0].substring(0, amountFounds[0].indexOf(","));
+        }
+
+        amount = amount.replaceAll('.', '').replace('(', '').replace(')', '');
+        return isNegative ? -amount : amount;
+    }
+
+    return 0;
 }
 
 const createStockSheet = async (stock, sheet) => {
