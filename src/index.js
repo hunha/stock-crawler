@@ -38,10 +38,12 @@ app.get('/test-crawl-text', (request, response) => {
 });
 
 app.get('/export/financial-statement', (request, response) => {
-    const stockCode = request.query.stock;
+    const stockCode = request.query.stock.toUpperCase();
+    const fileName = `${stockCode}_statement.csv`;
+    
 
     exportService.exportFinancialStatement(stockCode).then((csv) => {
-        response.set({'Content-Disposition':'attachment; filename="statement.csv"'});
+        response.set({'Content-Disposition':'attachment; filename="' + fileName + '"'});
         response.send(csv);
     });
 });

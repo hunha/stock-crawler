@@ -18,15 +18,15 @@ const exportFinancialStatement = async (stockCode) => {
 
     var composedData = {};
 
-    const balanceSheets = await balanceSheetModel.findByCodes(statementCodes);
+    var balanceSheets = await balanceSheetModel.findByCodes(statementCodes);
     balanceSheets = balanceSheets.reverse();
     composedData = collectData(balanceSheets, composedData);
 
-    const cashFlowStatements = await cashFlowStatementModel.findByCodes(statementCodes);
+    var cashFlowStatements = await cashFlowStatementModel.findByCodes(statementCodes);
     cashFlowStatements = cashFlowStatements.reverse();
     composedData = collectData(cashFlowStatements, composedData);
 
-    const incomeStatements = await incomeStatementModel.findByCodes(statementCodes);
+    var incomeStatements = await incomeStatementModel.findByCodes(statementCodes);
     incomeStatements = incomeStatements.reverse();
     composedData = collectData(incomeStatements, composedData);
 

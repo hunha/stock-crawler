@@ -151,10 +151,13 @@ const findInText = (text, fields) => {
         }
 
         if (!!fieldFounds) {
-            results.push({
-                code: fields[i].code,
-                amount: extractAmount(fieldFounds[0])
-            });
+            const amount = extractAmount(fieldFounds[0]);
+            if (amount > 0) {
+                results.push({
+                    code: fields[i].code,
+                    amount: extractAmount(fieldFounds[0])
+                });
+            }
         }
     }
 
@@ -229,7 +232,7 @@ const createStockSheet = async (stock, sheet) => {
 const FIELDS = [
     {
         code: 'currentAssets',
-        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN|SẴN)(\s?)(NGẮN|NGÁN|NGẮÁN)(\s?)HẠN(\s?).+/g]
+        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN|SẴN|SẮN)(\s?)(NGẮN|NGÁN|NGẮÁN|NGÂN)(\s?)HẠN(\s?).+/g]
     },
     {
         code: 'cashEquivalents',
@@ -240,7 +243,7 @@ const FIELDS = [
     },
     {
         code: 'totalLiabilities',
-        regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI)(\s?)(TRẢ|TRÀẢ|TRA|TRÁ)(\s?).+/g]
+        regexPatterns: [/NỢ(\s?)(PHẢI|PHÁI|PHẢÁI)(\s?)(TRẢ|TRÀẢ|TRA|TRÁ|TRẢÁ)(\s?).+/g]
     },
     {
         code: 'shortTermInvestments',
@@ -260,11 +263,11 @@ const FIELDS = [
     },
     {
         code: 'otherCurrentAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)ngắn(\s?)hạn(\s?)(khác|khắc|khảcợ)(\s?).+/g]
+        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)ngắn(\s?)hạn(\s?)(khác|khắc|khảcợ)(\s?).+/g]
     },
     {
         code: 'longTermAssets',
-        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN|SẴN|SẮN)(\s?)(DÀI|DẢI)(\s?)HẠN(\s?).+/g]
+        regexPatterns: [/(TÀI|TẢI)(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴẲN|SẴN|SẮN|SẮN)(\s?)(DÀI|DẢI)(\s?)HẠN(\s?).+/g]
     },
     {
         code: 'longTermReceivables',
@@ -275,13 +278,13 @@ const FIELDS = [
     },
     {
         code: 'tangibleAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)(cố|cổ|có|cỗ)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
+        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
     },
     {
         code: 'intangibleAssets',
         regexPatterns: [
-            /(Tài|Tải)(\s?)(sản|sẵn|sin)(\s?)(cố|cổ|có|cỗ)(\s?)định(\s?)(vô|võ|vở|về)(\s?)hình(\s?).+/g,
-            /Tài(\s?)(sản|sẵn|sin)(\s?)(vô|võ)(\s?)hình(\s?).+/g
+            /(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)(vô|võ|vở|về)(\s?)hình(\s?).+/g,
+            /Tài(\s?)(sản|sẵn|sin|săn)(\s?)(vô|võ)(\s?)hình(\s?).+/g
         ]
     },
     {
@@ -304,7 +307,7 @@ const FIELDS = [
         code: 'noncontrollingInterests',
         regexPatterns: [
             /LỢI(\s?)ÍCH(\s?)CỦA(\s?)(CỎ|CỔ)(\s?)ĐÔNG(\s?)THIẾU(\s?)(SÓ|SỐ)(\s?).+/g,
-            /Lợi(\s?)ích(\s?)(cỗ|cổ)(\s?)đông(\s?)không(\s?)kiểm(\s?)soát(\s?).+/g
+            /Lợi(\s?)ích(\s?)(cỗ|cổ|cô)(\s?)đông(\s?)không(\s?)kiểm(\s?)soát(\s?).+/g
         ]
     },
     {
@@ -313,23 +316,30 @@ const FIELDS = [
     },
     {
         code: 'cashFromOperations',
-        regexPatterns: [/(Lưu|Luưu|Luưut|đưu|TLưu|Luu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn|thuẩn|thuận)(\n?.*)(\n?.*)(kinh|kiính|hình|kính|kình)(\s?)(doanh|donnh)(\s?).+/g]
+        regexPatterns: [
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn|thuẩn|thuận)(\n?.*)(\n?.*)(kinh|kiính|hình|kính|kình)(\s?)(doanh|donnh|daanh)(\s?).+/g,
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\n?.*)(\n?.*)(kinh|kiính|hình|kính|kình)(\s?)(doanh|donnh|daanh)(\s?).+/g
+        ]
     },
     {
         code: 'cashFromInvesting',
         regexPatterns: [
-            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn|thuẩn|thuận)(\n?.*)(\n?.*)(đầu|đần|đâu)(\s?)(tư|tưr|t)(\s?).+/g
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thun|thuẩn|thuận)(\n?.*)(\n?.*)(đầu|đần|đâu|đu)(\s?)(tư|tưr|t|trc|tr)(\s?).+/g,
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\n?.*)(\n?.*)(đầu|đần|đâu|đu)(\s?)(tư|tưr|t|trc|tr)(\s?).+/g
         ]
     },
     {
         code: 'cashFromFinancing',
-        regexPatterns: [/(Lưu|Luưu|Luưut|đưu|TLưu|Luu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn|thuẩn|thuận)(\n?.*)(\n?.*)(tài|tùi)(\s?)chính(\s?).+/g]
+        regexPatterns: [
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\s?)(thuần|thuản|thuẫn|thuân|thuằn|thuẩn|thuận)(\n?.*)(\n?.*)(tài|tùi)(\s?)chính(\s?).+/g,
+            /(Lưu|Luưu|Luưut|đưu|TLưu|Luu|Lưru|ưu|Xu)(\s?)(chuyển|chuyên|chuyễn|chuyền)(\s?)(tiền|tiên|tiễn)(\n?.*)(\n?.*)(tài|tùi)(\s?)chính(\s?).+/g
+        ]
     },
     {
         code: 'totalRevenue',
         regexPatterns: [
-            /(Doanh|Dnanh)(\s?)thu(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\n?.*)(\n?.*)(cắp|cấp|cậấp|sấp)(\n?.*)(\n?.*)(dịch|dịnh)(\s?)(vụ|vọ)(\s?).+/g,
-            /(Doanh|Dnanh)(\s?)thu(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\s?).+/g
+            /(Doanh|Dnanh)(\s?)(thu|thụ)(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\n?.*)(\n?.*)(cắp|cấp|cậấp|sấp)(\n?.*)(\n?.*)(dịch|dịnh)(\s?)(vụ|vọ)(\s?).+/g,
+            /(Doanh|Dnanh)(\s?)(thu|thụ)(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\s?).+/g
         ]
     },
     {
