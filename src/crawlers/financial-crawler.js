@@ -278,25 +278,25 @@ const FIELDS = [
     },
     {
         code: 'tangibleAssets',
-        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)hữu(\s?)(hình|hỉnh)(\s?).+/g]
+        regexPatterns: [/(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)hữu(\s?)(hình|hỉnh|hlnh)(\s?).+/g]
     },
     {
         code: 'intangibleAssets',
         regexPatterns: [
-            /(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)(vô|võ|vở|về)(\s?)hình(\s?).+/g,
+            /(Tài|Tải)(\s?)(sản|sẵn|sin|săn)(\s?)(cố|cổ|có|cỗ|cô)(\s?)định(\s?)(vô|võ|vở|về)(\s?)(hình|hỉnh|hlnh)(\s?).+/g,
             /Tài(\s?)(sản|sẵn|sin|săn)(\s?)(vô|võ)(\s?)hình(\s?).+/g,
             /TSCĐ(\s?)(vô|võ)(\s?)hình(\s?).+/g
         ]
     },
     {
         code: 'goodwill',
-        regexPatterns: [/(unknown) .+/g]
+        regexPatterns: [/Lợi(\s?)thế(\s?)thương(\s?)mại(\s?).+/g]
     },
     {
         code: 'totalAssets',
         regexPatterns: [
-            /(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG)(\s?)(CỘNG|CỌNG|GỘNG )(\s?)TÀI(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴN)(\s?).+/g,
-            /(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG)(\s?)TÀI(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴN)(\s?).+/g
+            /(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG|TỎÓNG)(\s?)(CỘNG|CỌNG|GỘNG )(\s?)TÀI(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴN)(\s?).+/g,
+            /(TỎNG|TỔNG|TÓNG|TÔNG|TÓÔNG|TỎÓNG)(\s?)TÀI(\s?)(SẢN|SÁN|SÂN|SÀN|SẲN|SẢẲN|SẴN)(\s?).+/g
         ]
     },
     {
@@ -342,14 +342,14 @@ const FIELDS = [
     {
         code: 'totalRevenue',
         regexPatterns: [
-            /(Doanh|Dnanh)(\s?)(thu|thụ)(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\n?.*)(\n?.*)(cắp|cấp|cậấp|sấp)(\n?.*)(\n?.*)(dịch|dịnh)(\s?)(vụ|vọ)(\s?).+/g,
+            /(Doanh|Dnanh)(\s?)(thu|thụ)(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\n?.*)(\n?.*)(cắp|cấp|cậấp|sấp|câp)(\n?.*)(\n?.*)(dịch|dịnh)(\s?)(vụ|vọ)(\s?).+/g,
             /(Doanh|Dnanh)(\s?)(thu|thụ)(\s?)(thuần|thuản|thuẫn|thuằn|thuận)(\s?).+/g
         ]
     },
     {
         code: 'incomeBeforeTax',
         regexPatterns: [
-            /Tổng(\s?)lợi(\s?)nhuận(\s?)(kế|kể)(\s?)toán(\s?)trước(\s?)(thuế|thuê)(\s?).+/g,
+            /Tổng(\s?)lợi(\s?)nhuận(\s?)(kế|kể)(\s?)toán(\n?.*)(\n?.*)trước(\s?)(thuế|thuê)(\s?).+/g,
             /Tổng(\s?)lợi(\s?)nhuận(\s?)trước(\s?)(thuế|thuê)(\s?).+/g,
             /Lợi(\s?)nhuận(\s?)trước(\s?)(thuế|thuê)(\s?).+/g
         ]
